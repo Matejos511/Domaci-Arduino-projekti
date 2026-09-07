@@ -1,0 +1,7 @@
+relayPin = 1;        // Pin za rele (active LOW)
+pcSensePin = 7;     // Pin, ki zazna 5V iz PC USB (preko delilnika!)
+
+Konzolna logika:
+S   pove kolišen nivo napetosti je zaznan.
+R1 - izklopi rele
+R0 - vklopi rele
