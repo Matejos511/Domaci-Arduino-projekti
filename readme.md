@@ -10,7 +10,7 @@ This repository contains a curated list of projects with links to their reposito
 |----|-----------------------|------------------------------------------|----------------------------|
 | 1  | Voda-jama-cisterne      | [Repo](https://github.com/Matejos511/Domaci-Arduino-projekti/tree/main/arduino%20nivo%20vode) | [Summary](https://github.com/Matejos511/Domaci-Arduino-projekti/tree/main/arduino%20nivo%20vode)|
 | 2  | Sušilnica sadja         | [Repo](https://github.com/Matejos511/Domaci-Arduino-projekti/tree/main/Su_ilnica_14.5_delovna_verzija) | [Summary](https://github.com/username/project-two#summary) |
-| 3  | Volan in pedala         | [Repo](https://github.com/username/project-three) | [Summary](https://github.com/username/project-three#summary) |
+| 3  | FREJSLOT NC         | [Repo](https://github.com/username/project-three) | [Summary](https://github.com/username/project-three#summary) |
 | 4  | Light by music            | [Repo](https://github.com/Matejos511/Domaci-Arduino-projekti/tree/main/BrainSmash_AcousticControlForRGBLEDStrips_6_2019) | [Summary](https://github.com/username/project-four#summary) |
 | 5  | Poletni tabor javascript igra - Paintwall            | [Repo](https://github.com/Matejos511/Domaci-Arduino-projekti/tree/main/Ka%C4%8Dice) | [Summary]([https://github.com/username/project-five#summary) |
 | 6  | Vending machin             | [Repo](https://github.com/Matejos511/Domaci-Arduino-projekti/tree/main/vending_-_machinnn) | [Summary](https://github.com/Matejos511/Domaci-Arduino-projekti/tree/main/Gaming-sim-koda) |
