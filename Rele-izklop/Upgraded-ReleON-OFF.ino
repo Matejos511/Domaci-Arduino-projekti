@@ -16,7 +16,7 @@ const int pcSensePin = 7;          // Sense pin (preko delilnika)
 
 bool pcWasOn = false;
 const unsigned long pressTime = 500;   // dolžina "klika" v ms
-const unsigned long debounceMs = 300;  // anti-bounce za sense
+const unsigned long debounceMs = 1000;  // anti-bounce za sense
 
 unsigned long lastSenseChange = 0;
 bool lastStableState = false;
@@ -60,11 +60,11 @@ void handleSerial() {
     Serial.print(state);
     Serial.println(state ? F("  → PC VKLOPLJEN") : F("  → PC IZKLOPLJEN"));
   }
-  else if (cmd == "R0") {
+  else if (cmd == "R1") {
     digitalWrite(relayPin, LOW);    // aktiviraj rele (pritisk)
     Serial.println(F("Rele ON (R0) – pritisk gumba"));
   }
-  else if (cmd == "R1") {
+  else if (cmd == "R0") {
     digitalWrite(relayPin, HIGH);   // spusti rele
     Serial.println(F("Rele OFF (R1) – gumb spuščen"));
   }
@@ -80,8 +80,8 @@ void printHelp() {
   Serial.println(F("Ukazi:"));
   Serial.println(F("  ?     - ta pomoč"));
   Serial.println(F("  S     - stanje sense pina (0/1)"));
-  Serial.println(F("  R0    - vklopi rele (pritisk gumba)"));
-  Serial.println(F("  R1    - izklopi rele (spusti gumb)"));
+  Serial.println(F("  R1    - vklopi rele (pritisk gumba)"));
+  Serial.println(F("  R0    - izklopi rele (spusti gumb)"));
   Serial.println(F("----------------------------------------"));
 }
 
