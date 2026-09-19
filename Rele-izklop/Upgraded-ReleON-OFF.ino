@@ -1,122 +1,247 @@
 /*
-  PC Power Sense → Radio Button Press (ESP8266 / Arduino)
-  -------------------------------------------------------
-  - pcSensePin: zazna 5V iz PC (preko delilnika!) → HIGH = PC vklopljen
-  - relayPin: active-LOW rele (simulira pritisk gumba na radiu)
+  ESP8266 - PC Sense -> Radio Button
 
-  Konzolni ukazi (Serial 115200):
-    ?     → prikaže pomoč
-    S     → stanje sense pina (0/1) + interpretacija
-    R0    → vklopi rele (pritisk gumba – aktivno LOW)
-    R1    → izklopi rele (spusti gumb)
+  GPIO5 = rele
+  GPIO4 = PC sense
+
+  Rele je ACTIVE LOW:
+    LOW  = rele vklopljen
+    HIGH = rele izklopljen
+
+  Serial Monitor:
+    ?  = pomoč
+    S  = stanje PC sense
+    R1 = ročni vklop releja
+    R0 = ročni izklop releja
 */
 
-const int relayPin   = 1;          // Active-LOW rele
-const int pcSensePin = 7;          // Sense pin (preko delilnika)
+const int relayPin   = 5;   // GPIO5
+const int pcSensePin = 4;   // GPIO4
+
+const unsigned long pressTime = 500;
+const unsigned long debounceMs = 1000;
 
 bool pcWasOn = false;
-const unsigned long pressTime = 500;   // dolžina "klika" v ms
-const unsigned long debounceMs = 1000;  // anti-bounce za sense
+bool lastRawState = false;
+bool stableState = false;
 
-unsigned long lastSenseChange = 0;
-bool lastStableState = false;
+unsigned long stateChangedAt = 0;
+
+
+// =====================================================
+// SETUP
+// =====================================================
 
 void setup() {
+
   Serial.begin(115200);
-  delay(100);                       // počakaj, da se Serial stabilizira
 
+  delay(500);
+
+  // Rele
   pinMode(relayPin, OUTPUT);
-  digitalWrite(relayPin, HIGH);     // rele izklopljen (active-LOW)
 
-  pinMode(pcSensePin, INPUT);       // digitalni vhod (po delilniku)
+  // Rele mora biti ob zagonu IZKLOPLJEN
+  digitalWrite(relayPin, HIGH);
 
-  Serial.println(F("\n=== PC Sense → Radio Controller ==="));
-  Serial.println(F("Vtipkaj ? za seznam ukazov"));
-  printHelp();
+  // PC sense
+  pinMode(pcSensePin, INPUT);
+
+  delay(500);
+
+  // Preberi začetno stanje
+  bool initialState = digitalRead(pcSensePin);
+
+  lastRawState = initialState;
+  stableState = initialState;
+  pcWasOn = initialState;
+
+  Serial.println();
+  Serial.println("================================");
+  Serial.println("ESP8266 PC -> RADIO CONTROLLER");
+  Serial.println("================================");
+
+  if (pcWasOn) {
+    Serial.println("PC JE VKLOPLJEN");
+  } else {
+    Serial.println("PC JE IZKLOPLJEN");
+  }
+
+  Serial.println();
+  Serial.println("Vtipkaj ? za pomoc.");
 }
+
+
+// =====================================================
+// LOOP
+// =====================================================
 
 void loop() {
-  handleSerial();                   // najprej obravnavaj ukaze iz konzole
-  handlePcSense();                  // potem avtomatsko zaznavanje PC-ja
-  delay(20);                        // malo dihanja (ni potrebno 200 ms)
+
+  handleSerial();
+  handlePcSense();
+
+  delay(10);
 }
 
-// ------------------------------------------------------------
-//  Serijska konzola
-// ------------------------------------------------------------
+
+// =====================================================
+// SERIAL
+// =====================================================
+
 void handleSerial() {
-  if (!Serial.available()) return;
+
+  if (!Serial.available()) {
+    return;
+  }
 
   String cmd = Serial.readStringUntil('\n');
+
   cmd.trim();
   cmd.toUpperCase();
 
   if (cmd == "?") {
+
     printHelp();
+
   }
   else if (cmd == "S") {
+
     bool state = digitalRead(pcSensePin);
-    Serial.print(F("Sense pin: "));
-    Serial.print(state);
-    Serial.println(state ? F("  → PC VKLOPLJEN") : F("  → PC IZKLOPLJEN"));
+
+    Serial.print("Sense GPIO4 = ");
+    Serial.print(state ? "HIGH" : "LOW");
+
+    if (state) {
+      Serial.println(" -> PC VKLOPLJEN");
+    } else {
+      Serial.println(" -> PC IZKLOPLJEN");
+    }
   }
   else if (cmd == "R1") {
-    digitalWrite(relayPin, LOW);    // aktiviraj rele (pritisk)
-    Serial.println(F("Rele ON (R0) – pritisk gumba"));
+
+    Serial.println("ROCNI TEST: RELE ON");
+
+    digitalWrite(relayPin, LOW);
+
   }
   else if (cmd == "R0") {
-    digitalWrite(relayPin, HIGH);   // spusti rele
-    Serial.println(F("Rele OFF (R1) – gumb spuščen"));
+
+    Serial.println("ROCNI TEST: RELE OFF");
+
+    digitalWrite(relayPin, HIGH);
+
+  }
+  else if (cmd == "P") {
+
+    Serial.println("ROCNI TEST: KLIK");
+
+    pressButton();
+
   }
   else if (cmd.length() > 0) {
-    Serial.print(F("Neznan ukaz: "));
+
+    Serial.print("Neznan ukaz: ");
     Serial.println(cmd);
-    Serial.println(F("Vtipkaj ? za pomoč"));
+
+    Serial.println("Uporabi ?, S, R1, R0 ali P");
   }
 }
 
+
+// =====================================================
+// HELP
+// =====================================================
+
 void printHelp() {
-  Serial.println(F("----------------------------------------"));
-  Serial.println(F("Ukazi:"));
-  Serial.println(F("  ?     - ta pomoč"));
-  Serial.println(F("  S     - stanje sense pina (0/1)"));
-  Serial.println(F("  R1    - vklopi rele (pritisk gumba)"));
-  Serial.println(F("  R0    - izklopi rele (spusti gumb)"));
-  Serial.println(F("----------------------------------------"));
+
+  Serial.println();
+  Serial.println("--------------------------------");
+  Serial.println("Ukazi:");
+  Serial.println("  ?  - pomoc");
+  Serial.println("  S  - stanje PC sense");
+  Serial.println("  R1 - rele ON");
+  Serial.println("  R0 - rele OFF");
+  Serial.println("  P  - en klik releja");
+  Serial.println("--------------------------------");
+  Serial.println();
 }
 
-// ------------------------------------------------------------
-//  Avtomatsko zaznavanje vklopa/izklopa PC-ja
-// ------------------------------------------------------------
+
+// =====================================================
+// PC SENSE
+// =====================================================
+
 void handlePcSense() {
+
   bool rawState = digitalRead(pcSensePin);
 
-  // Debounce – sprememba mora trajati dovolj dolgo
-  if (rawState != lastStableState) {
-    if (millis() - lastSenseChange > debounceMs) {
-      lastStableState = rawState;
-      lastSenseChange = millis();
+  // Če se je vhod spremenil,
+  // začni meriti čas stabilizacije
+  if (rawState != lastRawState) {
 
-      if (rawState && !pcWasOn) {
-        // PC se je pravkar vklopil
-        Serial.println(F("[AUTO] PC ON → pritisk gumba (vklop radia)"));
+    lastRawState = rawState;
+    stateChangedAt = millis();
+
+    return;
+  }
+
+
+  // Sprememba mora biti stabilna vsaj debounceMs
+  if (rawState != stableState) {
+
+    if (millis() - stateChangedAt >= debounceMs) {
+
+      stableState = rawState;
+
+      // ==========================================
+      // PC ON
+      // ==========================================
+
+      if (stableState && !pcWasOn) {
+
+        Serial.println();
+        Serial.println("[AUTO] PC ON");
+        Serial.println("[AUTO] Vklapljam radio...");
+
         pressButton();
+
         pcWasOn = true;
       }
-      else if (!rawState && pcWasOn) {
-        // PC se je pravkar izklopil
-        Serial.println(F("[AUTO] PC OFF → pritisk gumba (izklop radia)"));
+
+
+      // ==========================================
+      // PC OFF
+      // ==========================================
+
+      else if (!stableState && pcWasOn) {
+
+        Serial.println();
+        Serial.println("[AUTO] PC OFF");
+        Serial.println("[AUTO] Izklapljam radio...");
+
         pressButton();
+
         pcWasOn = false;
       }
     }
-  } else {
-    lastSenseChange = millis();   // resetiraj timer, če je stanje stabilno
   }
 }
 
+
+// =====================================================
+// KLIK RELEJA
+// =====================================================
+
 void pressButton() {
-  digitalWrite(relayPin, LOW);    // aktiviraj rele
+
+  Serial.println("RELE ON");
+
+  digitalWrite(relayPin, LOW);
+
   delay(pressTime);
-  digitalWrite(relayPin, HIGH);   // spusti rele
+
+  digitalWrite(relayPin, HIGH);
+
+  Serial.println("RELE OFF");
 }
